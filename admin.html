@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>لوحة التحكم | بطيخة</title><link rel="stylesheet" href="styles.css">
+<style>body{background:var(--tint);padding-bottom:60px}.pn{background:#fff;border:2px solid var(--line);border-radius:var(--r);padding:16px;margin:14px 0}
+.pn h2{font-size:20px;margin-bottom:8px}table{width:100%;border-collapse:collapse}td{padding:6px 4px;border-bottom:1px solid #f1d4e4;vertical-align:middle}
+td input[type=text],td input[type=number],.f input{width:100%;min-height:40px;padding:0 10px;border:2px solid #f1d4e4;border-radius:10px}
+td input[type=number]{width:80px}.sm{min-height:36px;padding:0 14px;font-size:13px}.bar{position:sticky;top:0;z-index:5;background:#fff;padding:10px 16px;border-bottom:2px solid var(--line);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.warn{background:#fff3cd;border-radius:12px;padding:10px;font-size:13px}.thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;background:var(--tint)}</style></head>
+<body>
+<div id="login" class="wrap" style="max-width:380px;padding-top:80px"><div class="pn f"><h2>دخول لوحة التحكم</h2><label>كلمة المرور<input id="pw" type="password"></label><button class="btn" id="in">دخول</button><p class="warn">تنبيه: هذه الحماية داخل المتصفح فقط وليست آمنة. للحماية الحقيقية استخدم نسخة Supabase (راجع README).</p></div></div>
+<div id="app" hidden>
+<div class="bar"><b>لوحة تحكم بطيخة</b><button class="btn sm" id="saveAll">حفظ التغييرات</button><button class="btn sm ghost" id="exp">تصدير JSON</button><label class="btn sm ghost" style="cursor:pointer">استيراد<input id="imp" type="file" accept=".json" hidden></label><button class="btn sm ghost" id="rst">إرجاع الأصل</button><a class="btn sm ghost" href="index.html" target="_blank">فتح الموقع</a><span id="msg" style="color:var(--mag);font-weight:700"></span></div>
+<div class="wrap">
+<div class="pn warn">التعديلات تُحفظ في هذا المتصفح فقط. لتطبيقها لكل العملاء: اضغط «تصدير JSON» وارفع الملفات المحدثة (data/menu.js و data/config.js) أو انتقل لنسخة Supabase.</div>
+<div class="pn"><h2>الإعدادات</h2><div class="f" id="settings"></div></div>
+<div class="pn"><h2>أكواد الخصم</h2><div id="disc"></div><button class="btn sm ghost" id="addDisc">+ كود جديد</button></div>
+<div id="extrasPn" hidden></div><div id="extras" hidden></div><button id="addEx" hidden></button>
+<div id="cats"></div><button class="btn sm" id="addCat">+ قسم جديد</button>
+</div></div>
+<script src="data/menu.js"></script><script src="data/config.js"></script>
+<script>
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}};
+let menu=ld('btk_menu',structuredClone(window.MENU_DEFAULT)),cfg=Object.assign({},window.CONFIG_DEFAULT,ld('btk_config',{}));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const say=m=>{$('#msg').textContent=m;setTimeout(()=>$('#msg').textContent='',2500)};
+$('#in').onclick=()=>{if($('#pw').value===cfg.adminPass){$('#login').hidden=true;$('#app').hidden=false;draw()}else alert('كلمة المرور غير صحيحة')};
+$('#pw').onkeydown=e=>e.key==='Enter'&&$('#in').click();
+const S=[['whatsapp','رقم واتساب (بصيغة دولية بدون +)'],['phone','تليفون'],['address','العنوان'],['mapUrl','رابط Google Maps'],['instagram','رابط Instagram'],['facebook','رابط Facebook'],['tiktok','رابط TikTok'],['deliveryFee','رسوم التوصيل (اتركها فارغة = تُحدد عند التأكيد)'],['minOrder','الحد الأدنى للطلب (0 = بدون)'],['hoursAr','مواعيد العمل (عربي)'],['hoursEn','مواعيد العمل (English)'],['adminPass','كلمة مرور اللوحة']];
+const getS=k=>k==='hoursAr'?cfg.hours.ar:k==='hoursEn'?cfg.hours.en:cfg[k];
+function draw(){
+ $('#settings').innerHTML=S.map(([k,l])=>`<label>${l}<input data-s="${k}" value="${esc(getS(k)??'')}"></label>`).join('');
+ $('#disc').innerHTML=(cfg.discounts||[]).map((d,i)=>`<div class="row f" style="grid-template-columns:2fr 1fr 1fr auto;display:grid;margin:6px 0"><input data-d="${i}.code" value="${esc(d.code)}" placeholder="الكود"><select data-d="${i}.type"><option value="percent" ${d.type==='percent'?'selected':''}>%</option><option value="fixed" ${d.type==='fixed'?'selected':''}>مبلغ</option></select><input type="number" data-d="${i}.value" value="${d.value}"><button class="btn sm ghost" data-dd="${i}">حذف</button></div>`).join('');
+ $('#extras').innerHTML=menu.extras.map((e,i)=>`<div class="row f" style="display:grid;grid-template-columns:2fr 1fr auto;margin:6px 0"><input data-x="${i}.ar" value="${esc(e.ar)}"><input type="number" data-x="${i}.price" value="${e.price}"><button class="btn sm ghost" data-dx="${i}">حذف</button></div>`).join('');
+ $('#cats').innerHTML=menu.categories.map((c,ci)=>`<div class="pn"><div class="row f" style="display:grid;grid-template-columns:2fr 2fr auto"><input data-c="${ci}.ar" value="${esc(c.ar)}"><input data-c="${ci}.en" value="${esc(c.en)}" placeholder="English"><button class="btn sm ghost" data-dc="${ci}">حذف القسم</button></div>
+ <table>${c.items.map((it,ii)=>`<tr><td><input type="text" data-i="${ci}.${ii}.ar" value="${esc(it.ar)}"></td><td>${it.sizes?it.sizes.map((s,si)=>`<input type="number" title="${esc(s.ar)}" data-z="${ci}.${ii}.${si}" value="${s.price}">`).join(' '):`<input type="number" data-i="${ci}.${ii}.price" value="${it.price}">`}</td>
+ <td><label><input type="checkbox" data-i="${ci}.${ii}.available" ${it.available?'checked':''}> متاح</label><br><label><input type="checkbox" data-i="${ci}.${ii}.popular" ${it.popular?'checked':''}> مميز</label></td>
+ <td><button class="btn sm ghost" data-di="${ci}.${ii}">حذف</button></td></tr>`).join('')}</table><button class="btn sm ghost" data-ai="${ci}">+ صنف</button></div>`).join('');
+}
+document.addEventListener('input',e=>{const t=e.target,v=t.type==='checkbox'?t.checked:t.type==='number'?(t.value===''?0:+t.value):t.value;
+ if(t.dataset.s){const k=t.dataset.s;if(k==='hoursAr')cfg.hours.ar=v;else if(k==='hoursEn')cfg.hours.en=v;else if(k==='deliveryFee')cfg.deliveryFee=v===''?null:+v;else if(k==='minOrder')cfg.minOrder=+v||0;else cfg[k]=v}
+ if(t.dataset.d){const[i,k]=t.dataset.d.split('.');cfg.discounts[i][k]=v}
+ if(t.dataset.x){const[i,k]=t.dataset.x.split('.');menu.extras[i][k]=v}
+ if(t.dataset.c){const[i,k]=t.dataset.c.split('.');menu.categories[i][k]=v}
+ if(t.dataset.i){const[c,i,k]=t.dataset.i.split('.');menu.categories[c].items[i][k]=v}
+ if(t.dataset.z){const[c,i,s]=t.dataset.z.split('.');menu.categories[c].items[i].sizes[s].price=v}});
+document.addEventListener('change',async e=>{const t=e.target;if(!t.dataset.img)return;const[c,i]=t.dataset.img.split('.');const f=t.files[0];if(!f)return;
+ const im=await createImageBitmap(f),k=Math.min(1,640/im.width),cv=document.createElement('canvas');cv.width=im.width*k;cv.height=im.height*k;cv.getContext('2d').drawImage(im,0,0,cv.width,cv.height);
+ menu.categories[c].items[i].img=cv.toDataURL('image/jpeg',.8);draw();say('تم رفع الصورة – اضغط حفظ')});
+document.addEventListener('click',e=>{const d=e.target.dataset;if(!d)return;
+ if(d.dd!=null){cfg.discounts.splice(d.dd,1);draw()}if(d.dx!=null){menu.extras.splice(d.dx,1);draw()}
+ if(d.dc!=null&&confirm('حذف القسم بكل أصنافه؟')){menu.categories.splice(d.dc,1);draw()}
+ if(d.di!=null){const[c,i]=d.di.split('.');if(confirm('حذف الصنف؟')){menu.categories[c].items.splice(i,1);draw()}}
+ if(d.ai!=null){menu.categories[d.ai].items.push({id:'n'+Date.now(),ar:'صنف جديد',en:'',price:0,available:true,popular:false,img:''});draw()}});
+$('#addDisc').onclick=()=>{(cfg.discounts=cfg.discounts||[]).push({code:'',type:'percent',value:10});draw()};
+$('#addEx').onclick=()=>{menu.extras.push({id:'x'+Date.now(),ar:'إضافة جديدة',en:'',price:0});draw()};
+$('#addCat').onclick=()=>{menu.categories.push({id:'c'+Date.now(),ar:'قسم جديد',en:'New category',icon:'spark',items:[]});draw()};
+$('#saveAll').onclick=()=>{try{localStorage.setItem('btk_menu',JSON.stringify(menu));localStorage.setItem('btk_config',JSON.stringify(cfg));say('تم الحفظ ✓')}catch{say('المساحة ممتلئة – قلل حجم الصور')}};
+$('#rst').onclick=()=>{if(confirm('إرجاع كل شيء للبيانات الأصلية؟')){localStorage.removeItem('btk_menu');localStorage.removeItem('btk_config');location.reload()}};
+$('#exp').onclick=()=>{const dl=(n,s)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s],{type:'text/javascript'}));a.download=n;a.click()};
+ dl('menu.js','window.MENU_DEFAULT='+JSON.stringify(menu,null,1)+';');dl('config.js','window.CONFIG_DEFAULT='+JSON.stringify(cfg,null,2)+';')};
+$('#imp').onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(j.categories)menu=j;draw();say('تم الاستيراد')}catch{say('ملف غير صالح')}};
+</script></body></html>
